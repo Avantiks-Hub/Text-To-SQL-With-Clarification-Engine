@@ -46,11 +46,3 @@ references
         })
     return doc
 
-if __name__ == "__main__":
-
-    documents = create_schema_doc()
-
-    for document in documents:
-        print("=" * 60)
-        print(document["text"])
-        print(document["metadata"])
