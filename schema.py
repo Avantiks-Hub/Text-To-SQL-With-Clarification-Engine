@@ -55,4 +55,3 @@ for table, table_info in schema.items():
         graph[table].append(referenced_table)
         graph[referenced_table].append(table)
 
-print(graph)
