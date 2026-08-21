@@ -121,18 +121,8 @@ def get_vector_store():
 
     if is_index_up_to_date():
 
-        print("Loading existing vector store...")
-
         return load_vector_store()
-
-    print("Schema changed or index does not exist.")
 
     return build_vector_store()
 
 
-if __name__ == "__main__":
-
-    index, documents = get_vector_store()
-
-    print("Number of vectors:", index.ntotal)
-    print("Vector dimension:", index.d)
