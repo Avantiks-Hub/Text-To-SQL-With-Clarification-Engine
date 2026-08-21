@@ -1,7 +1,7 @@
 import numpy as np
 
 from rag.embeddings import SentenceTransformer, MODEL_NAME
-from rag.vector_store import create_vector_store
+from rag.vector_store import get_vector_store
 from schema import graph
 
 def retrieve_schema(query, top_k=3):
@@ -10,7 +10,7 @@ def retrieve_schema(query, top_k=3):
     model = SentenceTransformer(MODEL_NAME)
 
     # Create FAISS index and get original documents
-    index, documents = create_vector_store()
+    index, documents = get_vector_store()
 
     # Convert the user query into an embedding
     query_embedding = model.encode([query])
