@@ -39,10 +39,3 @@ def build_schema_context(query, top_k=3):
     return "\n".join(context_parts)
 
 
-if __name__ == "__main__":
-
-    query = "Which students are enrolled in Machine Learning?"
-
-    context = build_schema_context(query)
-
-    print(context)

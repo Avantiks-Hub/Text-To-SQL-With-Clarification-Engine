@@ -68,13 +68,3 @@ def expand_with_graph(tables):
     return list(expanded_tables)
 
 
-if __name__ == "__main__":
-
-    query = "Which students are enrolled in Machine Learning?"
-
-    results = retrieve_schema(query)
-
-    for result in results:
-        print("=" * 60)
-        print(result["text"])
-        print(result["metadata"])
