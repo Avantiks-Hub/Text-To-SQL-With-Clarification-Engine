@@ -8,20 +8,54 @@ load_dotenv()
 
 class Filter(BaseModel):
     column: str
+    operator: str
     value: str
 
 
-class QueryAnalysis(BaseModel):
-    intent_type: str
-    intent_description:str
+class Aggregation(BaseModel):
+    function: str
+    column: str
 
-    entities: list[str]
+
+class OrderBy(BaseModel):
+    column: str
+    direction: str
+
+
+class QueryAnalysis(BaseModel):
+
+    # What does the user want?
+    intent_type: str
+    intent_description: str
+
+    # Database objects
     tables: list[str]
+
+    # SELECT columns
+    selected_columns: list[str]
+
+    # WHERE conditions
     filters: list[Filter]
 
+    # COUNT / SUM / AVG / MIN / MAX
+    aggregations: list[Aggregation]
+
+    # GROUP BY
+    group_by: list[str]
+
+    # ORDER BY
+    order_by: list[OrderBy]
+
+    # LIMIT
+    limit: int | None
+
+    # Human concepts mentioned by the user
+    entities: list[str]
+
+    # Clarification information
     is_ambiguous: bool
     ambiguity_reason: str
-    missing_information:list[str]
+    missing_information: list[str]
 
 client=genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -99,11 +133,15 @@ or
 is NOT ambiguous if the user clearly identifies the table or entity
 and a reasonable SELECT * interpretation is possible.
 
-Do not mark a query ambiguous merely because the user did not specify
-individual columns.
+Do not mark a query ambiguous merely because a requested
+column or table does not exist.
 
-Mark a query ambiguous only when missing information materially affects
-the intended meaning or prevents a reliable query from being constructed.
+Represent the user's requested query plan first.
+
+Schema validity will be checked separately by the Schema Validator.
+
+Only set is_ambiguous=true when information is genuinely missing
+from the user's request and cannot be reasonably inferred.
 
 Examples of genuinely ambiguous requests:
 
@@ -127,6 +165,94 @@ is sufficiently specific because the requested entity,
 relationship, and filtering condition can be determined.
 
 Do not invent information that the user did not provide.
+
+Return a structured query plan.
+
+selected_columns:
+Columns that should appear in the SELECT result.
+
+Use fully qualified names when known:
+students.name
+courses.course_name
+
+If the user asks for all columns, use:
+["*"]
+
+filters:
+Represent every filtering condition explicitly stated by the user.
+
+For each filter provide:
+- column
+- operator
+- value
+
+Supported operators:
+=, !=, >, <, >=, <=, LIKE
+
+If the user explicitly refers to an attribute or column that does
+not exist in the schema, still represent the user's requested
+column reference in the filter using the most appropriate table
+based on the user's request.
+
+Do NOT silently remove a requested filter just because the column
+does not exist.
+
+The Schema Validator will determine whether the referenced
+column actually exists.
+
+Example:
+
+User:
+"Show me students with GPA above 8."
+
+If the students table does not contain GPA, still produce:
+
+{{
+  "column": "students.gpa",
+  "operator": ">",
+  "value": "8"
+}}
+
+The analyzer must not remove the condition.
+
+aggregations:
+Use for COUNT, SUM, AVG, MIN, MAX.
+
+Example:
+COUNT(students.student_id)
+
+group_by:
+Columns explicitly required for grouping.
+
+order_by:
+Columns used to sort the result.
+
+For every order_by item provide:
+- column
+- direction
+
+direction must be:
+ASC
+or
+DESC
+
+limit:
+Use only when the user explicitly requests a number of results,
+such as "top 5 students".
+
+If no limit is specified:
+null
+
+entities:
+Important natural-language concepts mentioned by the user.
+Entities are NOT necessarily database columns.
+
+IMPORTANT:
+Every database column reference in selected_columns,
+filters, aggregations, group_by, and order_by must be grounded
+in the provided database schema.
+
+Never invent a column.
 """
     response=client.models.generate_content(
         model="gemini-3.1-flash-lite",
@@ -142,13 +268,7 @@ Do not invent information that the user did not provide.
 if __name__ == "__main__":
 
     questions = [
-        "Show me all students.",
-        "How many students are there?",
-        "Show me students from the Computer Science department.",
-        "Show me the top students.",
-        "Show me students from the department.",
-        "Show me courses with high credits.",
-        "Show me all courses."
+        "Show me students with GPA above 8."
     ]
 
     for question in questions:
